@@ -1,0 +1,6 @@
+Chapter 2 of the Adventure
+chapter_3.txt
+chapter_4.txt
+This is a example text, with no meaning.
+Just a few lines of simple stupid text that has nothing to do with anything so
+it is totally nonsense.
