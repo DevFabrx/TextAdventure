@@ -19,8 +19,11 @@
 
 
 // Constants
-#define BUFFERSIZE 80
+#define LINE_BUFFER 80
+#define INITIAL_CHAPTERS 20
 #define EXIT_SUCCESS 0
+#define TRUE 1
+#define FALSE 0
 #define USAGE_ERROR_TEXT "Usage: ./ass2 [file-name]\n"
 #define OUT_OF_MEMORY_ERROR_TEXT "[ERR] Out of memory.\n"
 #define FILE_READ_ERROR_TEXT "[ERR] Could not read file [filename].\n"
@@ -29,8 +32,9 @@
 
 // Function Prototypes
 void parseErrorCode(int error_code);
-int parseCommandLineInput(char* input_string, int argc, char* argv[]);
-
+int parseCommandLineInput(char* command_line_input, int argc, char* argv[]);
+int readFiles(char* name_of_start_file, void* list_of_chapters);
+int gameLoop(void* list_of_chapters);
 
 // Typedef Structs
 typedef struct _Chapter_
@@ -66,39 +70,43 @@ typedef enum _ErrorCodes_
 //
 int main(int argc, char* argv[])
 {
-  char input[BUFFERSIZE];
-  printf("%s\n", argv[1]);
-  // Parses the command line input and handles all the possible errors.
-  parseErrorCode(parseCommandLineInput(input, argc, argv));
+  char command_line_input[LINE_BUFFER];
+  Chapter* list_of_chapters = (Chapter*)
+      malloc(sizeof(INITIAL_CHAPTERS * sizeof(Chapter)));
+  // Parses the command line command_line_input and handles all the possible errors.
+  parseErrorCode(parseCommandLineInput(command_line_input, argc, argv));
+  parseErrorCode(readFiles(command_line_input));
+
 
   return EXIT_SUCCESS;
 }
 
-/*
+
 //-----------------------------------------------------------------------------
 ///
-/// <Function Description>
+/// Reads in files for the game and saves them in the provided chapter struct
 ///
-/// @param input input
-/// @return int output
+/// @param name_of_start_file name of the first chapter/file to read in
+/// @return int error_code
 //
-int exampleFunction(int input)
+int readFiles(char* name_of_start_file, void* list_of_chapters)
 {
-  return 0;
+  list_of_chapters = (Chapter*) list_of_chapters;
+  // TODO Write function to read in the data
 }
-*/
+
+
 
 //-----------------------------------------------------------------------------
 ///
 /// <Function Description>
 ///
 /// @param argc number of inputs
-/// @param argv input string array
+/// @param argv input string array from command line
 /// @return int output
 //
-int parseCommandLineInput(char* input_string, int argc, char* argv[])
+int parseCommandLineInput(char* command_line_input, int argc, char* argv[])
 {
-  // TODO Implement proper command line parsing
   char* file_format = ".txt";
 
   // check if no user input or too many user inputs
@@ -111,19 +119,19 @@ int parseCommandLineInput(char* input_string, int argc, char* argv[])
   // check if .txt is appended or not, if not append it to the file string
   if(strchr(argv[1], '.'))
   {
-    input_string = argv[1];
-    if(!strcmp(pointer_to_dot_in_string, file_format))
+    command_line_input = argv[1];
+    if(strcmp(pointer_to_dot_in_string, file_format))
     {
       return FILE_READ_ERROR;
     }
   }
   else
   {
-    input_string = strcat(argv[1], file_format);
-    printf("%s\n", input_string);
+    command_line_input = strcat(argv[1], file_format);
     return EXIT_SUCCESS;
   }
 }
+
 
 //-----------------------------------------------------------------------------
 ///
@@ -156,4 +164,24 @@ void parseErrorCode(int error_code)
       printf("Unknown Error Code");
       exit(UNKNOWN_ERROR);
   }
+}
+
+//-----------------------------------------------------------------------------
+///
+/// This is the main game loop that prints the current chapter on the screen
+/// and handles user input.
+///
+/// @param  error code
+/// @return int error_code
+//
+int gameLoop(void* list_of_chapters)
+{
+  // convert void pointer to a pointer to the array of chapters
+  list_of_chapters = (Chapter*) list_of_chapters;
+  while(TRUE)
+  {
+    // TODO write main game loop, some functions that print the chapter text
+    // and await user input have to be written.
+  }
+
 }
