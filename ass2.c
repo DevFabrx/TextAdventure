@@ -20,7 +20,7 @@
 
 // Constants
 #define LINE_BUFFER 80
-#define INITIAL_CHAPTERS 20
+#define INITIAL_NUMBER_OF_CHAPTERS 20
 #define EXIT_SUCCESS 0
 #define TRUE 1
 #define FALSE 0
@@ -29,12 +29,6 @@
 #define FILE_READ_ERROR_TEXT "[ERR] Could not read file [filename].\n"
 #define INPUT_ERROR_TEXT "[ERR] Please enter A or B.\n"
 
-
-// Function Prototypes
-void parseErrorCode(int error_code);
-int parseCommandLineInput(char* command_line_input, int argc, char* argv[]);
-int readFiles(char* name_of_start_file, void* list_of_chapters);
-int gameLoop(void* list_of_chapters);
 
 // Typedef Structs
 typedef struct _Chapter_
@@ -55,8 +49,16 @@ typedef enum _ErrorCodes_
   FILE_READ_ERROR,
   USER_INPUT_ERROR,
   UNKNOWN_ERROR
-
 }ErrorCodes;
+
+// Function Prototypes
+void parseErrorCode(int error_code);
+int parseCommandLineInput(char* command_line_input, int argc, char* argv[]);
+int readFiles(char* name_of_start_file, Chapter* chapter_list);
+char* readFile(FILE* file_name);
+int gameLoop(Chapter* chapter_list);
+int getChapterTitle(FILE* file, char* title);
+int isCorrupt(char* data);
 
 
 //-----------------------------------------------------------------------------
@@ -71,12 +73,11 @@ typedef enum _ErrorCodes_
 int main(int argc, char* argv[])
 {
   char command_line_input[LINE_BUFFER];
-  Chapter* list_of_chapters = (Chapter*)
-      malloc(sizeof(INITIAL_CHAPTERS * sizeof(Chapter)));
+  Chapter* chapter_list = (Chapter*)
+      malloc(sizeof(INITIAL_NUMBER_OF_CHAPTERS * sizeof(Chapter)));
   // Parses the command line command_line_input and handles all the possible errors.
   parseErrorCode(parseCommandLineInput(command_line_input, argc, argv));
-  parseErrorCode(readFiles(command_line_input));
-
+  parseErrorCode(readFiles(command_line_input, chapter_list));
 
   return EXIT_SUCCESS;
 }
@@ -89,21 +90,91 @@ int main(int argc, char* argv[])
 /// @param name_of_start_file name of the first chapter/file to read in
 /// @return int error_code
 //
-int readFiles(char* name_of_start_file, void* list_of_chapters)
+int readFiles(char* name_of_start_file, Chapter* chapter_list)
 {
-  list_of_chapters = (Chapter*) list_of_chapters;
-  // TODO Write function to read in the data
+  // TODO Write function that reads in all files
+
 }
 
 
 
 //-----------------------------------------------------------------------------
 ///
-/// <Function Description>
+/// Reads in all data from a file and returns a pointer to the c-string that
+/// contains that data
 ///
-/// @param argc number of inputs
-/// @param argv input string array from command line
-/// @return int output
+/// @param file pointer to the file stream
+/// @return char* read c-string
+//
+char* readFile(FILE* file)
+{
+  char* buffer = (char*) malloc(LINE_BUFFER*sizeof(char));
+  int buffer_length = LINE_BUFFER;
+  int length_counter = 0;
+  char c;
+  while((c=fgetc(file)) != EOF)
+  {
+    if(length_counter == buffer_length-2)
+    {
+      buffer_length += buffer_length;
+      buffer = (char*) realloc(buffer, buffer_length);
+      if(buffer == NULL)
+      {
+        return NULL;
+      }
+    }
+    buffer[length_counter] = c;
+    length_counter += 1;
+  }
+  buffer[length_counter] = '\n';
+  buffer[length_counter+1] = '\0';
+  return buffer;
+}
+
+
+//-----------------------------------------------------------------------------
+///
+/// Checks if the read file data is corrupt (does not have the right data
+/// structure) and returns 0 if not corrupt and 1 if corrupt.
+///
+/// @param file pointer to the file stream
+/// @return int 1 (TRUE) or 0 (FALSE)
+//
+int isCorrupt(char *file_data)
+{
+  char* title = strtok(file_data, "\n");
+  char* chapter_A = strtok(NULL, "\n");
+  char* chapter_A_type = &chapter_A[strlen(chapter_A)-4];
+  char* chapter_B = strtok(NULL, "\n");
+  char* chapter_B_type = &chapter_B[strlen(chapter_B)-4];
+  char* description = strtok(NULL, "\0");
+  if(strcmp(chapter_A, "-") != 0 && strstr(chapter_A_type, ".txt") == NULL)
+  {
+    return TRUE;
+  }
+  if(strcmp(chapter_B, "-") != 0 && strstr(chapter_B_type, ".txt") == NULL)
+  {
+    return TRUE;
+  }
+  if(description == NULL || strstr(description, "") == NULL)
+  {
+    return TRUE;
+  }
+  else
+  {
+    return FALSE;
+  }
+}
+
+//-----------------------------------------------------------------------------
+///
+/// Checks if there is only one command line input argument and parses that
+/// into a .txt string so that the file can be opened.
+///
+/// @param command_line_input pointer where the parsed string is stored
+/// @param argc number of inputs from main
+/// @param argv pointer to the input array from main
+/// @return int error code
 //
 int parseCommandLineInput(char* command_line_input, int argc, char* argv[])
 {
@@ -174,10 +245,9 @@ void parseErrorCode(int error_code)
 /// @param  error code
 /// @return int error_code
 //
-int gameLoop(void* list_of_chapters)
+int gameLoop(Chapter* list_of_chapters)
 {
-  // convert void pointer to a pointer to the array of chapters
-  list_of_chapters = (Chapter*) list_of_chapters;
+
   while(TRUE)
   {
     // TODO write main game loop, some functions that print the chapter text
