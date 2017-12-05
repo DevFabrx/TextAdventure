@@ -37,6 +37,7 @@ typedef struct _Chapter_
   char* text_;
   struct _ChapterStruct_* next_A_;
   struct _ChapterStruct_* next_B_;
+  struct _ChapterStruct_* next;
 } Chapter;
 
 
@@ -53,12 +54,13 @@ typedef enum _ErrorCodes_
 
 // Function Prototypes
 void parseErrorCode(int error_code);
-int parseCommandLineInput(char* command_line_input, int argc, char* argv[]);
-int readFiles(char* name_of_start_file, Chapter* chapter_list);
+int parseCommandLineInput(char** command_line_input, int argc, char* argv[]);
+int readFiles(char* name_of_start_file);
 char* readFile(FILE* file_name);
 int gameLoop(Chapter* chapter_list);
 int getChapterTitle(FILE* file, char* title);
 int isCorrupt(char* data);
+Chapter* createChapters(char* chapter_data);
 
 
 //-----------------------------------------------------------------------------
@@ -72,17 +74,35 @@ int isCorrupt(char* data);
 //
 int main(int argc, char* argv[])
 {
-  char command_line_input[LINE_BUFFER];
-  Chapter* chapter_list = (Chapter*)
-      malloc(sizeof(INITIAL_NUMBER_OF_CHAPTERS * sizeof(Chapter)));
+  //char command_line_input[LINE_BUFFER];
+  char* command_line_input;
+  command_line_input = (char*) malloc(120*sizeof(char));
   // Parses the command line command_line_input and handles all the possible errors.
-  parseErrorCode(parseCommandLineInput(command_line_input, argc, argv));
-  parseErrorCode(readFiles(command_line_input, chapter_list));
+  parseErrorCode(parseCommandLineInput(&command_line_input, argc, argv));
+  printf("%s", command_line_input);
+  FILE* file = fopen("start_of_adventure.txt", "r");
+  if(file == NULL)
+  {
+    printf("cannot open file.\n");
+  }
+  char* root_data = readFile(file);
+  if(isCorrupt(root_data))
+  {
+    return FILE_READ_ERROR;
+  }
+  Chapter* root_chapter = createChapters(root_data);
+  Chapter* current_chapter = root_chapter;
+  while(current_chapter->next_A_ != NULL)
+  {
+    printf("%s", current_chapter->title_);
+    current_chapter = current_chapter->next_A_;
+  }
+
 
   return EXIT_SUCCESS;
 }
 
-
+/*
 //-----------------------------------------------------------------------------
 ///
 /// Reads in files for the game and saves them in the provided chapter struct
@@ -90,11 +110,50 @@ int main(int argc, char* argv[])
 /// @param name_of_start_file name of the first chapter/file to read in
 /// @return int error_code
 //
-int readFiles(char* name_of_start_file, Chapter* chapter_list)
+int readFiles(char* name_of_start_file)
 {
   // TODO Write function that reads in all files
+  FILE* file = fopen(name_of_start_file, "r");
+  char* first_data = readFile(file);
+  if(isCorrupt(first_data))
+  {
+    return FILE_READ_ERROR;
+  }
+  createChapters(first_data);
+}*/
 
+Chapter* createChapters(char* chapter_data)
+{
+  Chapter* new_chapter = (Chapter*) malloc(sizeof(Chapter));
+  char* title = strtok(chapter_data, "\n");
+  char* chapter_A = strtok(NULL, "\n");
+  char* chapter_A_type = &chapter_A[strlen(chapter_A)-4];
+  char* chapter_B = strtok(NULL, "\n");
+  char* chapter_B_type = &chapter_B[strlen(chapter_B)-4];
+  char* description = strtok(NULL, "\0");
+  new_chapter->title_ = title;
+  new_chapter->text_ = description;
+  if(strcmp(chapter_A,"-")!=0)
+  {
+    new_chapter->next_A_ = createChapters(readFile(fopen(chapter_A,"r")));
+    return new_chapter;
+  }
+  else
+  {
+    new_chapter->next_A_ == NULL;
+  }
+  if(strcmp(chapter_B, "-")!=0)
+  {
+    new_chapter->next_B_ = createChapters(readFile(fopen(chapter_B,"r")));
+    return new_chapter;
+  }
+  else
+  {
+    new_chapter->next_B_ == NULL;
+  }
+  return new_chapter;
 }
+
 
 
 
@@ -140,9 +199,13 @@ char* readFile(FILE* file)
 /// @param file pointer to the file stream
 /// @return int 1 (TRUE) or 0 (FALSE)
 //
-int isCorrupt(char *file_data)
+int isCorrupt(char* file_data)
 {
-  char* title = strtok(file_data, "\n");
+  char* data;
+  data = (char*) malloc(sizeof(file_data)/ sizeof(char));
+  data = strncpy(data, file_data, 1024);
+  char* title;
+  title = strtok(data, "\n");
   char* chapter_A = strtok(NULL, "\n");
   char* chapter_A_type = &chapter_A[strlen(chapter_A)-4];
   char* chapter_B = strtok(NULL, "\n");
@@ -150,18 +213,22 @@ int isCorrupt(char *file_data)
   char* description = strtok(NULL, "\0");
   if(strcmp(chapter_A, "-") != 0 && strstr(chapter_A_type, ".txt") == NULL)
   {
+    free(data);
     return TRUE;
   }
   if(strcmp(chapter_B, "-") != 0 && strstr(chapter_B_type, ".txt") == NULL)
   {
+    free(data);
     return TRUE;
   }
   if(description == NULL || strstr(description, "") == NULL)
   {
+    free(data);
     return TRUE;
   }
   else
   {
+    free(data);
     return FALSE;
   }
 }
@@ -176,7 +243,7 @@ int isCorrupt(char *file_data)
 /// @param argv pointer to the input array from main
 /// @return int error code
 //
-int parseCommandLineInput(char* command_line_input, int argc, char* argv[])
+int parseCommandLineInput(char** command_line_input, int argc, char* argv[])
 {
   char* file_format = ".txt";
 
@@ -188,19 +255,15 @@ int parseCommandLineInput(char* command_line_input, int argc, char* argv[])
 
   char* pointer_to_dot_in_string = strchr(argv[1], '.');
   // check if .txt is appended or not, if not append it to the file string
-  if(strchr(argv[1], '.'))
+  *command_line_input = argv[1];
+  if(strcmp(pointer_to_dot_in_string, file_format) != 0)
   {
-    command_line_input = argv[1];
-    if(strcmp(pointer_to_dot_in_string, file_format))
-    {
-      return FILE_READ_ERROR;
-    }
-  }
-  else
-  {
-    command_line_input = strcat(argv[1], file_format);
+    *command_line_input = strcat(argv[1], file_format);
+    printf("%s\n", command_line_input);
     return EXIT_SUCCESS;
   }
+  printf("%s\tnothing happened\n", command_line_input);
+  return EXIT_SUCCESS;
 }
 
 
