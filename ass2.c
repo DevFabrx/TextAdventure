@@ -56,10 +56,13 @@ void parseErrorCode(int error_code);
 int parseCommandLineInput(char** command_line_input, int argc, char* argv[]);
 int readFiles(char* name_of_start_file);
 char* readFile(FILE* file_name);
-int gameLoop(Chapter* chapter_list);
+int gameLoop(Chapter* root_chapter);
 int getChapterTitle(FILE* file, char* title);
 int isCorrupt(char* data);
 Chapter* createChapters(char* chapter_data);
+void freeAll(Chapter* root_chapter);
+Chapter* createChapters(char* chapter_data);
+
 
 
 //-----------------------------------------------------------------------------
@@ -89,36 +92,18 @@ int main(int argc, char* argv[])
   }
   Chapter* root_chapter = createChapters(root_data);
   Chapter* current_chapter = root_chapter;
-  while(current_chapter->next_A_ != NULL)
-  {
-    printf("%s", current_chapter->title_);
-    current_chapter = current_chapter->next_A_;
-  }
-
-
+  gameLoop(root_chapter);
+  freeAll(root_chapter);
   return EXIT_SUCCESS;
 }
 
-/*
 //-----------------------------------------------------------------------------
 ///
-/// Reads in files for the game and saves them in the provided chapter struct
+/// Reads in all data from the files into the corresponding data structure
 ///
-/// @param name_of_start_file name of the first chapter/file to read in
-/// @return int error_code
+/// @param chapter_data char* that contains all Chapter data
+/// @return new_chapter New Chapter* to the filled data struct
 //
-int readFiles(char* name_of_start_file)
-{
-  // TODO Write function that reads in all files
-  FILE* file = fopen(name_of_start_file, "r");
-  char* first_data = readFile(file);
-  if(isCorrupt(first_data))
-  {
-    return FILE_READ_ERROR;
-  }
-  createChapters(first_data);
-}*/
-
 Chapter* createChapters(char* chapter_data)
 {
   char* string_copy = (char*) malloc(sizeof(char)*strlen(chapter_data));
@@ -141,7 +126,7 @@ Chapter* createChapters(char* chapter_data)
   {
     new_chapter->next_A_ == NULL;
   }
-  if(strcmp(chapter_B, "-")!=0)
+  if(strcmp(chapter_B, "-") != 0)
   {
     new_chapter->next_B_ = createChapters(readFile(fopen(chapter_B,"r")));
     return new_chapter;
@@ -152,7 +137,6 @@ Chapter* createChapters(char* chapter_data)
   }
   return new_chapter;
 }
-
 
 
 
@@ -202,8 +186,7 @@ int isCorrupt(char* file_data)
 {
   char* string_data = (char*) malloc(sizeof(char)*strlen(file_data));
   string_data = strncpy(string_data, file_data, strlen(file_data));
-  char* title;
-  title = strtok(string_data, "\n");
+  char* title = strtok(string_data, "\n");
   char* chapter_A = strtok(NULL, "\n");
   char* chapter_A_type = &chapter_A[strlen(chapter_A)-4];
   char* chapter_B = strtok(NULL, "\n");
@@ -305,30 +288,32 @@ void parseErrorCode(int error_code)
 //
 int gameLoop(Chapter* chapter)
 {
-  char* input_buffer;
+  // TODO "B" input not working properly --> NEED TO FIX
+  char input;
   while(TRUE)
   {
-    // TODO write main game loop, some functions that print the chapter text
-    // and await user input have to be written.
     printChapterToConsole(chapter);
-    if(fgets(input_buffer, 3, stdin) == NULL)
+    scanf("%c", &input);
+    if(input == 'A')
     {
-      return 0;
-    }
-    if(strcmp(input_buffer, "A\n") == 0)
-    {
+      if(chapter->next_A_== NULL)
+      {
+        return 0;
+      }
       chapter = chapter->next_A_;
     }
-    if(strcmp(input_buffer, "B\n") == 0)
+    if(input == 'B')
     {
+      if(chapter->next_B_== NULL)
+      {
+        return 0;
+      }
       chapter = chapter->next_B_;
-    }
-    if(chapter->next_A_ == NULL && chapter->next_B_ == NULL)
-    {
-      return SUCCESS;
     }
   }
 }
+
+
 //-----------------------------------------------------------------------------
 ///
 /// Prints the Chapter data in the right format to the console output
@@ -349,4 +334,29 @@ void printChapterToConsole(Chapter* chapter)
   {
     printf("Deine Wahl [A/B]? ");
   }
+}
+
+
+//-----------------------------------------------------------------------------
+///
+/// Frees all dynamically allocated memory of the Chapter structs
+///
+/// @param  root_chapter Root chapter of the binary tree data structure
+/// @return void
+//
+void freeAll(Chapter* root_chapter)
+{
+  if(root_chapter->next_A_ != NULL)
+  {
+    freeAll(root_chapter->next_A_);
+    freeAll(root_chapter->title_);
+    freeAll(root_chapter->text_);
+  }
+  if(root_chapter->next_B_ != NULL)
+  {
+    freeAll(root_chapter->next_B_);
+    freeAll(root_chapter->title_);
+    freeAll(root_chapter->text_);
+  }
+  free(root_chapter);
 }
