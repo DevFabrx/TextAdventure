@@ -75,10 +75,8 @@ int main(int argc, char* argv[])
 {
   //char command_line_input[LINE_BUFFER];
   char* command_line_input;
-  command_line_input = (char*) malloc(120*sizeof(char));
   // Parses the command line command_line_input and handles all the possible errors.
   parseErrorCode(parseCommandLineInput(&command_line_input, argc, argv));
-  printf("%s", command_line_input);
   FILE* file = fopen("start_of_adventure.txt", "r");
   if(file == NULL)
   {
@@ -123,11 +121,10 @@ int readFiles(char* name_of_start_file)
 
 Chapter* createChapters(char* chapter_data)
 {
-  char* heli__list = NULL;
-  heli__list = (char*) malloc(256*sizeof(char));
-  heli__list = strncpy(heli__list, chapter_data, 1024);
+  char* string_copy = (char*) malloc(sizeof(char)*strlen(chapter_data));
+  string_copy = strncpy(string_copy, chapter_data, strlen(chapter_data));
   Chapter* new_chapter = (Chapter*) malloc(sizeof(Chapter));
-  char* title = strtok(heli__list, "\n");
+  char* title = strtok(string_copy, "\n");
   char* chapter_A = strtok(NULL, "\n");
   //char* chapter_A_type = &chapter_A[strlen(chapter_A)-4];
   char* chapter_B = strtok(NULL, "\n");
@@ -203,9 +200,8 @@ char* readFile(FILE* file)
 //
 int isCorrupt(char* file_data)
 {
-  char* string_data;
-  string_data = (char*) malloc(sizeof(file_data)/ sizeof(char));
-  string_data = strncpy(string_data, file_data, 1024);
+  char* string_data = (char*) malloc(sizeof(char)*strlen(file_data));
+  string_data = strncpy(string_data, file_data, strlen(file_data));
   char* title;
   title = strtok(string_data, "\n");
   char* chapter_A = strtok(NULL, "\n");
@@ -233,7 +229,6 @@ int isCorrupt(char* file_data)
     free(string_data);
     return FALSE;
   }
-  free(string_data);
   return FALSE;
 }
 
@@ -250,23 +245,19 @@ int isCorrupt(char* file_data)
 int parseCommandLineInput(char** command_line_input, int argc, char* argv[])
 {
   char* file_format = ".txt";
-
   // check if no user input or too many user inputs
   if(argc == 1 || argc > 2)
   {
     return USAGE_ERROR;
   }
-
   char* pointer_to_dot_in_string = strchr(argv[1], '.');
   // check if .txt is appended or not, if not append it to the file string
   *command_line_input = argv[1];
   if(strcmp(pointer_to_dot_in_string, file_format) != 0)
   {
     *command_line_input = strcat(argv[1], file_format);
-    printf("%s\n", command_line_input);
     return EXIT_SUCCESS;
   }
-  printf("%s\tnothing happened\n", command_line_input);
   return EXIT_SUCCESS;
 }
 
