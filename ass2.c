@@ -37,7 +37,6 @@ typedef struct _Chapter_
   char* text_;
   struct _ChapterStruct_* next_A_;
   struct _ChapterStruct_* next_B_;
-  struct _ChapterStruct_* next;
 } Chapter;
 
 
@@ -124,12 +123,15 @@ int readFiles(char* name_of_start_file)
 
 Chapter* createChapters(char* chapter_data)
 {
+  char* heli__list = NULL;
+  heli__list = (char*) malloc(256*sizeof(char));
+  heli__list = strncpy(heli__list, chapter_data, 1024);
   Chapter* new_chapter = (Chapter*) malloc(sizeof(Chapter));
-  char* title = strtok(chapter_data, "\n");
+  char* title = strtok(heli__list, "\n");
   char* chapter_A = strtok(NULL, "\n");
-  char* chapter_A_type = &chapter_A[strlen(chapter_A)-4];
+  //char* chapter_A_type = &chapter_A[strlen(chapter_A)-4];
   char* chapter_B = strtok(NULL, "\n");
-  char* chapter_B_type = &chapter_B[strlen(chapter_B)-4];
+  //char* chapter_B_type = &chapter_B[strlen(chapter_B)-4];
   char* description = strtok(NULL, "\0");
   new_chapter->title_ = title;
   new_chapter->text_ = description;
@@ -201,11 +203,11 @@ char* readFile(FILE* file)
 //
 int isCorrupt(char* file_data)
 {
-  char* data;
-  data = (char*) malloc(sizeof(file_data)/ sizeof(char));
-  data = strncpy(data, file_data, 1024);
+  char* string_data;
+  string_data = (char*) malloc(sizeof(file_data)/ sizeof(char));
+  string_data = strncpy(string_data, file_data, 1024);
   char* title;
-  title = strtok(data, "\n");
+  title = strtok(string_data, "\n");
   char* chapter_A = strtok(NULL, "\n");
   char* chapter_A_type = &chapter_A[strlen(chapter_A)-4];
   char* chapter_B = strtok(NULL, "\n");
@@ -213,24 +215,26 @@ int isCorrupt(char* file_data)
   char* description = strtok(NULL, "\0");
   if(strcmp(chapter_A, "-") != 0 && strstr(chapter_A_type, ".txt") == NULL)
   {
-    free(data);
+    free(string_data);
     return TRUE;
   }
   if(strcmp(chapter_B, "-") != 0 && strstr(chapter_B_type, ".txt") == NULL)
   {
-    free(data);
+    free(string_data);
     return TRUE;
   }
   if(description == NULL || strstr(description, "") == NULL)
   {
-    free(data);
+    free(string_data);
     return TRUE;
   }
   else
   {
-    free(data);
+    free(string_data);
     return FALSE;
   }
+  free(string_data);
+  return FALSE;
 }
 
 //-----------------------------------------------------------------------------
@@ -277,10 +281,10 @@ int parseCommandLineInput(char** command_line_input, int argc, char* argv[])
 //
 void parseErrorCode(int error_code)
 {
+  // TODO NO EXIT()
   switch(error_code)
   {
     case 0:
-      printf("Success\n");
       break;
     case 1:
       printf("%s", USAGE_ERROR_TEXT);
@@ -308,13 +312,50 @@ void parseErrorCode(int error_code)
 /// @param  error code
 /// @return int error_code
 //
-int gameLoop(Chapter* list_of_chapters)
+int gameLoop(Chapter* chapter)
 {
-
+  char* input_buffer;
   while(TRUE)
   {
     // TODO write main game loop, some functions that print the chapter text
     // and await user input have to be written.
+    printChapterToConsole(chapter);
+    if(fgets(input_buffer, 3, stdin) == NULL)
+    {
+      return 0;
+    }
+    if(strcmp(input_buffer, "A\n") == 0)
+    {
+      chapter = chapter->next_A_;
+    }
+    if(strcmp(input_buffer, "B\n") == 0)
+    {
+      chapter = chapter->next_B_;
+    }
+    if(chapter->next_A_ == NULL && chapter->next_B_ == NULL)
+    {
+      return SUCCESS;
+    }
   }
-
+}
+//-----------------------------------------------------------------------------
+///
+/// Prints the Chapter data in the right format to the console output
+///
+/// @param  chapter Chapter* to the data of the chapter
+/// @return void
+//
+void printChapterToConsole(Chapter* chapter)
+{
+  printf("------------------------------\n");
+  printf("%s\n\n", chapter->title_);
+  printf("%s\n\n", chapter->text_);
+  if(chapter->next_A_ == NULL && chapter->next_B_ == NULL)
+  {
+    printf("ENDE\n");
+  }
+  else
+  {
+    printf("Deine Wahl [A/B]? ");
+  }
 }
