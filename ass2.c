@@ -20,7 +20,6 @@
 
 // Constants
 #define LINE_BUFFER 80
-#define INITIAL_NUMBER_OF_CHAPTERS 20
 #define EXIT_SUCCESS 0
 #define TRUE 1
 #define FALSE 0
@@ -55,13 +54,14 @@ typedef enum _ErrorCodes_
 void parseErrorCode(int error_code);
 int parseCommandLineInput(char** command_line_input, int argc, char* argv[]);
 int readFiles(char* name_of_start_file);
-char* readFile(FILE* file_name);
+char* readFile(FILE* file);
 int gameLoop(Chapter* root_chapter);
 int getChapterTitle(FILE* file, char* title);
 int isCorrupt(char* data);
 Chapter* createChapters(char* chapter_data);
 void freeAll(Chapter* root_chapter);
 Chapter* createChapters(char* chapter_data);
+int printChapterToConsole(Chapter* chapter);
 
 
 
@@ -80,12 +80,19 @@ int main(int argc, char* argv[])
   char* command_line_input;
   // Parses the command line command_line_input and handles all the possible errors.
   parseErrorCode(parseCommandLineInput(&command_line_input, argc, argv));
-  FILE* file = fopen("start_of_adventure.txt", "r");
+  //FILE* file = fopen("start_of_adventure.txt", "r");
+
+  FILE* file = fopen(command_line_input, "r");
   if(file == NULL)
   {
-    printf("cannot open file.\n");
+    printf("Cannot open file.\n");
   }
+
   char* root_data = readFile(file);
+
+  fclose(file);
+
+  //TODO: Error Handling
   if(isCorrupt(root_data))
   {
     return FILE_READ_ERROR;
@@ -119,21 +126,33 @@ Chapter* createChapters(char* chapter_data)
   new_chapter->text_ = description;
   if(strcmp(chapter_A,"-")!=0)
   {
-    new_chapter->next_A_ = createChapters(readFile(fopen(chapter_A,"r")));
-    return new_chapter;
+    FILE* file = fopen(chapter_A,"r");
+    if(file == NULL)
+    {
+      printf("Cannot open file.\n");
+    }
+
+    new_chapter->next_A_ = createChapters(readFile(file));
+    fclose(file);
   }
   else
   {
-    new_chapter->next_A_ == NULL;
+    new_chapter->next_A_ = NULL;
   }
   if(strcmp(chapter_B, "-") != 0)
   {
-    new_chapter->next_B_ = createChapters(readFile(fopen(chapter_B,"r")));
-    return new_chapter;
+    FILE* file = fopen(chapter_B,"r");
+    if(file == NULL)
+    {
+      printf("Cannot open file.\n");
+    }
+
+    new_chapter->next_B_ = createChapters(readFile(file));
+    fclose(file);
   }
   else
   {
-    new_chapter->next_B_ == NULL;
+    new_chapter->next_B_ = NULL;
   }
   return new_chapter;
 }
@@ -150,15 +169,16 @@ Chapter* createChapters(char* chapter_data)
 //
 char* readFile(FILE* file)
 {
-  char* buffer = (char*) malloc(LINE_BUFFER*sizeof(char));
+  char* buffer = (char*) calloc(LINE_BUFFER, sizeof(char));
   int buffer_length = LINE_BUFFER;
   int length_counter = 0;
   char c;
+
   while((c=fgetc(file)) != EOF)
   {
-    if(length_counter == buffer_length-2)
+    if(length_counter == buffer_length-1)
     {
-      buffer_length += buffer_length;
+      buffer_length += LINE_BUFFER;
       buffer = (char*) realloc(buffer, buffer_length);
       if(buffer == NULL)
       {
@@ -168,8 +188,11 @@ char* readFile(FILE* file)
     buffer[length_counter] = c;
     length_counter += 1;
   }
-  buffer[length_counter] = '\n';
+  fclose(file);
+
+  //buffer[length_counter] = '\n';
   buffer[length_counter+1] = '\0';
+  //buffer = realloc(buffer, length_counter+1);
   return buffer;
 }
 
@@ -229,7 +252,7 @@ int parseCommandLineInput(char** command_line_input, int argc, char* argv[])
 {
   char* file_format = ".txt";
   // check if no user input or too many user inputs
-  if(argc == 1 || argc > 2)
+  if(argc != 2)
   {
     return USAGE_ERROR;
   }
@@ -319,9 +342,9 @@ int gameLoop(Chapter* chapter)
 /// Prints the Chapter data in the right format to the console output
 ///
 /// @param  chapter Chapter* to the data of the chapter
-/// @return void
+/// @return int error_code
 //
-void printChapterToConsole(Chapter* chapter)
+int printChapterToConsole(Chapter* chapter)
 {
   printf("------------------------------\n");
   printf("%s\n\n", chapter->title_);
@@ -329,6 +352,7 @@ void printChapterToConsole(Chapter* chapter)
   if(chapter->next_A_ == NULL && chapter->next_B_ == NULL)
   {
     printf("ENDE\n");
+    return 0;
   }
   else
   {
@@ -349,14 +373,10 @@ void freeAll(Chapter* root_chapter)
   if(root_chapter->next_A_ != NULL)
   {
     freeAll(root_chapter->next_A_);
-    freeAll(root_chapter->title_);
-    freeAll(root_chapter->text_);
   }
   if(root_chapter->next_B_ != NULL)
   {
     freeAll(root_chapter->next_B_);
-    freeAll(root_chapter->title_);
-    freeAll(root_chapter->text_);
   }
   free(root_chapter);
 }
